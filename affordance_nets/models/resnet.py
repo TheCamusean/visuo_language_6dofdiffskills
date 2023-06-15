@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import visuo_language_6dofdiffskills.utils as utils
+import affordance_nets.utils as utils
 
 
 class IdentityBlock(nn.Module):
@@ -62,17 +62,18 @@ class ConvBlock(nn.Module):
 
 
 class ResNet43_8s(nn.Module):
-    def __init__(self, input_shape, output_dim, cfg, device, preprocess):
+    def __init__(self, input_shape, output_dim, cfg=None, device='cpu'):
         super(ResNet43_8s, self).__init__()
         self.input_shape = input_shape
         self.input_dim = input_shape[-1]
         self.output_dim = output_dim
-        self.cfg = cfg
+        self.cfg = self.set_cfg(cfg)
         self.device = device
-        self.batchnorm = self.cfg['train']['batchnorm']
-        self.preprocess = preprocess
-
         self.layers = self._make_layers()
+
+    def set_cfg(self, cfg):
+        if cfg is None:
+            self.batchnorm = True
 
     def _make_layers(self):
         layers = nn.Sequential(
@@ -116,7 +117,16 @@ class ResNet43_8s(nn.Module):
         return layers
 
     def forward(self, x):
-        x = self.preprocess(x, dist='transporter')
-
         out = self.layers(x)
         return out
+
+
+
+if __name__ == '__main__':
+    device = 'cuda'
+
+    model = ResNet43_8s(input_shape=(500, 500, 3), output_dim=700).to(device)
+
+    img = torch.rand(1, 3, 500, 500).to(device)
+    out = model(img)
+    print(out.shape)
