@@ -1,4 +1,5 @@
 import random
+import os
 import numpy as np
 from PIL import Image, ImageDraw
 
@@ -6,6 +7,8 @@ from PIL import Image, ImageDraw
 img_size = (500, 500)
 # Define box size
 box_size = (50, 50)
+
+base_dir = os.path.abspath(os.path.dirname(__file__))
 
 poses = np.zeros((0,2))
 for k in range(50):
@@ -34,7 +37,10 @@ for k in range(50):
     draw.rectangle(pos, fill='blue')
 
     # Save the image
-    img.save("data/image_with_box_{}.png".format(k))
+    save_file = os.path.join(base_dir, "data/image_with_box_{}.png".format(k))
+    img.save(save_file)
 
     print("Image saved as 'image_with_box_{}.png'".format(k))
-np.save('data/poses.npy', poses)
+
+save_file = os.path.join(base_dir, 'data/poses.npy')
+np.save(save_file, poses)

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import cliport.utils.utils as utils
+import visuo_language_6dofdiffskills.utils as utils
 
 
 class IdentityBlock(nn.Module):
