@@ -2,59 +2,56 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 import os
+import glob
+import pickle
 
+from affordance_nets.utils.directory_utils import get_data_dir
 
-data_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data'))
-print(data_path)
+class RLBenchDataset(Dataset):
 
-class SimpleNaiveData(Dataset):
+    def __init__(self, task_type='open_drawer', type='train'):
+        data_path = os.path.join(get_data_dir(), 'rl_bench')
+        self.data_path = os.path.join(data_path, type, task_type)
 
-    def __init__(self):
-        dir_path = os.path.join(data_path, 'naive_data')
+        ## Episode List ##
+        self.episodes_folders = glob.glob(os.path.join(self.data_path, 'all_variations', 'episodes','**'))
+        self.episode_len = len(self.episodes_folders)
 
-        pose_path = os.path.join(dir_path, 'poses.npy')
-        self.poses = np.load(pose_path)
-        self.len = self.poses.shape[0]
+        file_path = os.path.join(self.episodes_folders[0], 'low_dim_obs.pkl')
+        with open(file_path, 'rb') as f:
+            data = pickle.load(f)
+        print(data)
+
+        self.len = self.episode_len*10
+
 
     def __len__(self):
         return self.len
 
-    def generate_2d_image_and_mask(self, idx):
-        import matplotlib.pyplot as plt
-        import numpy as np
+    def generate_samples(self, idx):
+        file_path = os.path.join(self.episodes_folders[idx], 'low_dim_obs.pkl')
+        with open(file_path, 'rb') as f:
+            low_dim_data = pickle.load(f)
 
-        # Create a 224x224x3 array of zeros (an empty RGB image)
-        image = np.zeros((224, 224, 3), dtype=np.uint8)
-        mask = np.zeros((224, 224), dtype=np.uint8)
+        time = np.random.randint(0, len(low_dim_data._observations))
+        low_dim_data_t = low_dim_data._observations[time]
+        print(low_dim_data)
 
-        # Define the size of the square
-        square_size = 40
+        H_gripper = low_dim_data_t.gripper_matrix
 
-        # Generate random coordinates for the top left corner of the square
-        x = int(idx[0])
-        y = int(idx[1])
-        if x<224 and y<224:
-            # Change the color of the pixels in the square to blue
-            image[x:x + square_size, y:y + square_size] = [0, 0, 255]
-
-            ## Set Segmentation mask ##
-            mask[x:x + square_size, y:y + square_size] = 1
-
-        # # Display the image
-        # plt.imshow(mask)
-        # plt.axis('off')  # to remove the axis
-        # plt.show()
-        return image, mask
+        misc_dict = low_dim_data_t.misc
 
     def __getitem__(self, idx):
-        sample_image, sample_mask = self.generate_2d_image_and_mask(self.poses[idx])
+        episode_idx = np.random.randint(0, self.episode_len)
+
+        sample_image, sample_mask = self.generate_samples(episode_idx)
         return sample_image, sample_mask
 
 
 
 
 if __name__ == '__main__':
-    data = SimpleNaiveData()
+    data = RLBenchDataset()
 
     batch_size = 5
     my_dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)

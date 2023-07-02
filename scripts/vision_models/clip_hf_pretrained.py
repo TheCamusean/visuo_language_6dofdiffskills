@@ -10,7 +10,6 @@ url = "http://images.cocodataset.org/val2017/000000039769.jpg"
 image = Image.open(requests.get(url, stream=True).raw)
 
 
-
 ### Get Latent Text Features ####
 from transformers import AutoTokenizer
 tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
@@ -22,6 +21,10 @@ text_features = model.get_text_features(**inputs)
 inputs = processor(images=image, return_tensors="pt")
 image_features = model.get_image_features(**inputs)
 ###############################
+
+
+_out = model.vision_model(**inputs, output_hidden_states=True)
+print(_out['hidden_states'][-1].shape)
 
 
 _out = model.vision_model(pixel_values=inputs['pixel_values'],

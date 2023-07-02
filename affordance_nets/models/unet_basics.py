@@ -1,5 +1,5 @@
 # Credit: https://github.com/milesial/Pytorch-UNet/
-# Credit: 
+# Credit: https://github.com/cliport/cliport/blob/master/cliport
 
 import torch
 import torch.nn as nn
@@ -77,3 +77,13 @@ class OutConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+
+
+if __name__ == '__main__':
+    model = Up(in_channels=100, out_channels=10)
+
+    img = torch.randn(1, 50, 10, 10)
+    img2 = torch.randn(1, 50, 20, 20)
+    out = model(img, img2)
+    print(out.shape)

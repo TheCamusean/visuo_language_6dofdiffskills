@@ -2,20 +2,19 @@ import os
 
 import torch
 from torch.utils.data import DataLoader
-from affordance_nets.datasets.naive_segmentation_data import SimpleNaiveData
+from affordance_nets.datasets.pusht_diffusion_policy_data import PushTImageProjectedDataset
 from affordance_nets.models.segmentation_net import SegmentationNet as Model
 from affordance_nets.utils.directory_utils import makedirs
 import torch.optim as optim
 from tqdm import tqdm
 
-from transformers import AutoFeatureExtractor
 
 import matplotlib.pyplot as plt
 
 # Parameters
-num_epochs = 200
+num_epochs = 10
 batch_size = 10
-learning_rate = 0.001
+learning_rate = 0.0001
 
 # GPU or CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -37,16 +36,20 @@ def segmentation_visualization(img, mask):
 
 
 
-
 def main():
 
     ## Set Dataset
-    train_data = SimpleNaiveData()
+    H = 10
+
+    from affordance_nets.utils.directory_utils import get_data_dir
+    path = get_data_dir()
+    zarr_path = os.path.join(path, 'diffusion_policy', 'pusht', 'pusht_cchi_v7_replay.zarr')
+
+    train_data = PushTImageProjectedDataset(zarr_path=zarr_path, horizon=H)
     train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    feature_extractor = AutoFeatureExtractor.from_pretrained("microsoft/resnet-18")
 
     ## Set Model
-    model = Model().to(device)
+    model = Model(output_channels=H).to(device)
 
     # Create optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -57,13 +60,12 @@ def main():
         # Wrap the dataloader with tqdm to show a progress bar
         for i, batch in enumerate(train_dataloader):
 
-                inputs = batch[0]
-                inputs = feature_extractor(inputs, return_tensors="pt").to(device)
-
-                labels = batch[1].to(device)
+                inputs = batch['obs']['image'][:,0,...].to(device)
+                labels = batch['obs']['agent_pos_mask'].to(device)
+                #labels = batch['obs']['agent_pos'].to(device)
 
                 # Forward pass
-                outputs = model(**inputs, labels=labels)
+                outputs = model(pixel_values=inputs, labels=labels)
                 loss = outputs[0]
 
                 # Backward pass and optimization
@@ -73,6 +75,15 @@ def main():
 
                 if (i + 1) % 5 == 0:
                     print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_dataloader)}], Loss: {loss.item()}")
+
+
+                if (i + 1)% 50 ==0:
+                    ## Save Torch Model ##
+                    checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
+                    makedirs(checkpoint_dir)
+                    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
+                    torch.save(model.state_dict(), checkpoint_model)
+
 
     ## Save Torch Model ##
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'naive_data')
@@ -84,7 +95,6 @@ def main():
 
     ############# Evaluation of the model ###############
     img = batch[0]
-    inputs = feature_extractor(img, return_tensors="pt").to(device)
     labels = batch[1].to(device)
     outputs = model(**inputs, labels=labels)
     mask = torch.sigmoid(outputs[1])

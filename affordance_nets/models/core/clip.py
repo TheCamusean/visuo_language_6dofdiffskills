@@ -21,7 +21,7 @@ from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from tqdm import tqdm
 
-from cliport.utils.simple_tokenizer import SimpleTokenizer as _Tokenizer
+from affordance_nets.models.core.utils.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
 
 __all__ = ["available_models", "load", "tokenize"]
@@ -531,7 +531,7 @@ def available_models():
     return list(_MODELS.keys())
 
 
-def load_clip(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=True):
+def load_clip(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=False):
     if name not in _MODELS:
         raise RuntimeError(f"Model {name} not found; available models = {available_models()}")
 

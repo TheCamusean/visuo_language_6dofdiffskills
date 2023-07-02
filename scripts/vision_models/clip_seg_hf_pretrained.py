@@ -4,9 +4,8 @@ import torch
 import matplotlib.pyplot as plt
 
 
-#url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-#image = Image.open(requests.get(url, stream=True).raw)
-image = Image.open('data/image_with_box_46.png')
+url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+image = Image.open(requests.get(url, stream=True).raw)
 
 
 
@@ -21,6 +20,11 @@ model = CLIPSegForImageSegmentation.from_pretrained("CIDAS/clipseg-rd64-refined"
 inputs = processor(images=image, return_tensors="pt")
 image_features = model.clip.get_image_features(**inputs)
 ########################
+
+
+_out = model.clip.vision_model(**inputs, output_hidden_states=True)
+print(_out['hidden_states'][-1].shape)
+
 
 
 prompts = ["a box", "a blue cube", "white", "a cube", "a very very very long text is going here"]

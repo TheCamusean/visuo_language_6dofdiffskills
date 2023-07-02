@@ -1,0 +1,165 @@
+{
+    "os": "Linux-5.4.0-150-generic-x86_64-with-glibc2.27",
+    "python": "3.9.16",
+    "heartbeatAt": "2023-07-01T17:04:46.201129",
+    "startedAt": "2023-07-01T17:04:45.683319",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/julen/data/code/vision_toolkit/libs/visuo_language_6dofdiffskills/scripts/train_energy/train_image_conditioned_energy.py",
+    "codePath": "scripts/train_energy/train_image_conditioned_energy.py",
+    "git": {
+        "remote": "git@github.com:TheCamusean/visuo_language_6dofdiffskills.git",
+        "commit": "a1e0d4b2faf64b4385700c3238e73f64a2b93496"
+    },
+    "email": "judj.core@gmail.com",
+    "root": "/home/julen/data/code/vision_toolkit/libs/visuo_language_6dofdiffskills",
+    "host": "fisher",
+    "username": "julen",
+    "executable": "/home/julen/anaconda3/envs/dinov2/bin/python",
+    "cpu_count": 12,
+    "cpu_count_logical": 24,
+    "cpu_freq": {
+        "current": 2244.6950416666664,
+        "min": 2200.0,
+        "max": 3800.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2208.298,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1984.868,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2070.292,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2840.96,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2160.724,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2095.239,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2199.438,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2200.877,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2196.991,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2210.058,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2200.338,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2198.95,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2201.832,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1935.349,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2047.009,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 3770.326,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2086.849,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2083.445,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2198.761,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2197.628,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2199.525,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2199.691,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2185.224,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2200.009,
+            "min": 2200.0,
+            "max": 3800.0
+        }
+    ],
+    "disk": {
+        "total": 376.71557998657227,
+        "used": 280.72138595581055
+    },
+    "gpu": "NVIDIA GeForce RTX 2080 SUPER",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 2080 SUPER",
+            "memory_total": 8589934592
+        }
+    ],
+    "memory": {
+        "total": 62.81954574584961
+    }
+}
