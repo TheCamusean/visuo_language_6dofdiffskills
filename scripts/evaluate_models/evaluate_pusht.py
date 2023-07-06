@@ -66,7 +66,7 @@ if __name__ == '__main__':
     ## Save Torch Model ##
     checkpoint_dir = os.path.join(os.path.dirname(__file__), '..' , 'trained_models', 'pusht')
     makedirs(checkpoint_dir)
-    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
+    checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
 
     H=10
     model = Model(output_channels=H).to(device)
