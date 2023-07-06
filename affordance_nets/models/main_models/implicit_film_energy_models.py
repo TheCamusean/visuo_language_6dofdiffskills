@@ -8,7 +8,7 @@ from affordance_nets.models.common.position_encoding import PositionalEncoding2D
 
 class ImplicitFiLMImageEBM(ModuleAttrMixin):
     def __init__(self, vision_backbone, input_dim=2, output_dim=2, p_drop_emb=0.1,
-                      hidden_dim=248):
+                      hidden_dim=248, vision_2_features = 'transformer'):
         super().__init__()
 
         ## Basics ##
@@ -20,13 +20,16 @@ class ImplicitFiLMImageEBM(ModuleAttrMixin):
         ## Vision Model ##
         self.vision_model = vision_backbone
 
+        ## Set Vision to Features ##
         self.layer = -1
         dims = self.vision_model.img_features[self.layer]
         img_scale = self.vision_model.img_layers[self.layer]
-        img_size_out = (img_scale)
-
-        self.vision_rescale = nn.Conv2d(dims, 700, kernel_size=3, stride=img_size_out)
         vision_dim = 700
+        if vision_2_features=='cnn':
+            img_size_out = (img_scale)
+            self.vision_2_features = nn.Conv2d(dims, vision_dim, kernel_size=3, stride=img_size_out)
+        elif vision_2_features=='transformer':
+            self.vision_2_features = Vision2FeaturesTransformer(num_dims=dims, output_dims=vision_dim)
 
         ## FiLM conditioned network ##
         self.film_model = FilmModel(input_dim= hidden_dim,
@@ -39,11 +42,11 @@ class ImplicitFiLMImageEBM(ModuleAttrMixin):
         self.head = nn.Linear(hidden_dim, output_dim)
 
     def get_backbone_features(self, context):
-        #with torch.no_grad():
-        ## Get Visual Features from Vision Encoder ##
-        images = context['images']
-        visual_features = self.vision_model(images)
-        return visual_features
+        with torch.no_grad():
+            ## Get Visual Features from Vision Encoder ##
+            images = context['images']
+            visual_features = self.vision_model(images)
+            return visual_features
 
     def train(self, x, context):
         self.set_context(context)
@@ -75,7 +78,7 @@ class ImplicitFiLMImageEBM(ModuleAttrMixin):
     def set_context(self, context):
         ## 1. Compute Visual Features ##
         _context_features = self.get_backbone_features(context)['hidden_states'][self.layer]
-        _context_features = self.vision_rescale(_context_features)
+        _context_features = self.vision_2_features(_context_features)
         B = _context_features.shape[0]
         self.context_features = _context_features.reshape(B, -1)
 
@@ -94,6 +97,51 @@ class ImplicitFiLMImageEBM(ModuleAttrMixin):
         out = self.ln_f(out)
         out = self.head(out)
         return out
+
+
+class Vision2FeaturesTransformer(ModuleAttrMixin):
+    def __init__(self, num_dims, n_head=8, output_dims=700, p_drop_attn=0.1, num_layers=3):
+        super().__init__()
+
+        ## Queries ##
+        data = torch.randn(1,num_dims)
+        self.queries = nn.parameter.Parameter(data=data, requires_grad=True)
+
+        # Tranformer Decoder
+        self.position_encoding = PositionalEncoding2D(channels=num_dims)
+
+        decoder_layer = nn.TransformerDecoderLayer(
+            d_model=num_dims,
+            nhead=n_head,
+            dim_feedforward=4 * num_dims,
+            dropout=p_drop_attn,
+            activation='gelu',
+            batch_first=True,
+            norm_first=True  # important for stability
+        )
+        self.decoder = nn.TransformerDecoder(
+            decoder_layer=decoder_layer,
+            num_layers=num_layers
+        )
+
+        self.ln = nn.LayerNorm(num_dims)
+        self.head = nn.Linear(num_dims, output_dims)
+
+    def forward(self, images):
+        B = images.shape[0]
+        F = images.shape[1]
+        position_embedding = self.position_encoding(images)
+        img_context = images + position_embedding
+        img_context = img_context.reshape(B,F,-1)
+        img_context = img_context.permute(0,2,1)
+
+        queries_batch = self.queries[None,...].repeat(B,1,1)
+        out = self.decoder(queries_batch, img_context)[:,0,:]
+
+        out = self.ln(out)
+        out = self.head(out)
+        return out
+
 
 class FilmModel(ModuleAttrMixin):
     def __init__(self,  input_dim,
@@ -156,8 +204,8 @@ class ResidualFiLM(ModuleAttrMixin):
     def forward(self, x, cond):
 
         x = self.blocks[0](x)
-
         out = self.blocks[1](x)
+
         embed = self.cond_encoder(cond)
 
         embed = embed.reshape(
@@ -178,7 +226,7 @@ def test():
     vision_model = ResNet18_Backbone()
 
     ## Load EBM Model ##
-    ebm_model = ImplicitFiLMImageEBM(vision_backbone=vision_model)
+    ebm_model = ImplicitFiLMImageEBM(vision_backbone=vision_model, vision_2_features='transformer')
 
     ## Evaluation ##
     from PIL import Image

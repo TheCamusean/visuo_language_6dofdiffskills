@@ -327,9 +327,9 @@ if __name__ == '__main__':
         img2[int(agent_pos[1]), int(agent_pos[0]),:] = [0, 0, 0]
 
         H = 10
-        # for l in range(1, H):
-        #     agent_pos_pred = agent_poses[l, :2]
-        #     img2[int(agent_pos_pred[1]), int(agent_pos_pred[0])] = [0, 255, 0]
+        for l in range(1, H):
+            agent_pos_pred = agent_poses[l, :2]
+            img2[int(agent_pos_pred[1]), int(agent_pos_pred[0])] = [0, 255, 0]
 
         # for l in range(1, 1):
         #     agent_pos_pred = agent_actions[l, :2]
