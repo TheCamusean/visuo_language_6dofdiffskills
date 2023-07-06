@@ -77,7 +77,7 @@ def main():
     ## Save Torch Model ##
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'naive_data')
     makedirs(checkpoint_dir)
-    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
+    checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
     torch.save(model.state_dict(),  checkpoint_model)
     print('Finished Training')
 

@@ -22,7 +22,7 @@ def main(model):
     path = get_data_dir()
     zarr_path = os.path.join(path, 'diffusion_policy', 'pusht', 'pusht_cchi_v7_replay.zarr')
 
-    train_data = PushTImageProjectedDataset(zarr_path=zarr_path, horizon=5, resize=model.vision_model.img_size)
+    train_data = PushTImageProjectedDataset(zarr_path=zarr_path, horizon=10, resize=model.vision_model.img_size)
     train_dataloader = DataLoader(train_data, batch_size=1, shuffle=True)
 
 
@@ -31,7 +31,7 @@ def main(model):
         for i, batch in enumerate(train_dataloader):
 
             images = batch['obs']['image'][:, 0, ...]
-            _x = batch['obs']['agent_pos'][:, 0, :].to(device)
+            _x = batch['obs']['agent_pos'][:, 9, :].to(device)
             images = model.vision_model.image_preprocess(images).to(device)
 
             context = {'images': images}
@@ -44,8 +44,9 @@ def main(model):
 
             ## Given the massive size split in pieces and compute the energy
             energy = torch.zeros(xy.shape[0]).to(device)
+            energy_target = torch.zeros(xy.shape[0]).to(device)
 
-            _n = 100
+            _n = 50
             batches = xy.shape[0]//_n
             context_features = model.context_features.repeat(_n, 1, 1)
             for k in range(batches):
@@ -58,18 +59,29 @@ def main(model):
 
                 energy[_n*k:_n*(k+1)] = energy_p.squeeze()
 
+                ## Target ##
+                dist = (xy_p - _x).pow(2).sum(-1).pow(.5)
+                energy_p = torch.exp(-dist.pow(2) / 0.01)
+                energy_target[_n * k:_n * (k + 1)] = energy_p.squeeze()
+
+
+
             energy_grid = energy.reshape(xx.shape[0], xx.shape[1]).cpu().numpy()
+            energy_grid_target = energy_target.reshape(xx.shape[0], xx.shape[1]).cpu().numpy()
+
             img_vis = images[0,...].permute(1,2,0).cpu().numpy()
             img_vis = (img_vis - img_vis.min()) / (img_vis.max() - img_vis.min())
 
             img_vis_e = .5*img_vis + .5*energy_grid[:,:,None]
+            img_vis_e_tar = .5*img_vis + .5*energy_grid_target[:,:,None]
 
             ## Visualize the Visual energy Maps ##
-            _, ax = plt.subplots(1, 3, figsize=(8, 4))
+            _, ax = plt.subplots(1, 4, figsize=(8, 4))
 
             ax[0].imshow(img_vis)
             ax[1].imshow(energy_grid)
             ax[2].imshow(img_vis_e)
+            ax[3].imshow(img_vis_e_tar)
 
             plt.show()
 
@@ -78,9 +90,10 @@ def main(model):
 if __name__ == '__main__':
     ## Save Torch Model ##
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
-    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
+    checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
 
     from affordance_nets.models.main_models.implicit_film_energy_models import ImplicitFiLMImageEBM as Model
+    from affordance_nets.models.main_models.implicit_transformer2_energy_models import ImplicitTransformer2ImageEBM as Model
     from affordance_nets.models.vision_backbone.clip import CLIP_Backbone
     from affordance_nets.models.vision_backbone.resnet import ResNet18_Backbone
 

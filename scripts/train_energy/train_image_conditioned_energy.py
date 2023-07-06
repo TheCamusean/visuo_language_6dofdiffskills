@@ -18,7 +18,8 @@ wandb.login()
 
 # Parameters
 num_epochs = 1000
-batch_size = 50
+batch_size = 5
+num_accumulation = 10
 learning_rate = 1e-4
 
 # GPU or CPU
@@ -44,20 +45,20 @@ def main():
     ## Set Dataset
     H = 10
 
-    ## Set Model
-    from affordance_nets.models.vision_backbone.clip import CLIP_Backbone
-    from affordance_nets.models.vision_backbone.clip_seg import CLIPSeg_Backbone
+    ## Set Model ##
     from affordance_nets.models.vision_backbone.resnet import ResNet18_Backbone
     from affordance_nets.models.main_models.implicit_film_energy_models import ImplicitFiLMImageEBM as Model
+    from affordance_nets.models.main_models.implicit_transformer2_energy_models import ImplicitTransformer2ImageEBM as Model
 
     vision_backbone = ResNet18_Backbone()
     model = Model(vision_backbone=vision_backbone).to(device)
 
-
-    ## Load Pretrained ##
-    checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
-    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
-    model.load_state_dict(torch.load(checkpoint_model))
+    load_pretrained = False
+    if load_pretrained:
+        ## Load Pretrained ##
+        checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
+        checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
+        model.load_state_dict(torch.load(checkpoint_model))
 
     ## Set Dataset
     from affordance_nets.utils.directory_utils import get_data_dir
@@ -71,7 +72,7 @@ def main():
     # val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
 
     # Create optimizer
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-6)
 
     # Cosine LR schedule with linear warmup
     lr_scheduler = get_scheduler(
@@ -85,6 +86,9 @@ def main():
     wandb.init()
     # Training loop
     step = 0
+    step_vis = 0
+    NUM_ACCUMULATION_STEPS = num_accumulation
+    optimizer.zero_grad()
     for epoch in range(num_epochs):
         epoch_loss = 0
         # Wrap the dataloader with tqdm to show a progress bar
@@ -115,28 +119,36 @@ def main():
                 loss = outputs['loss']
 
                 # Backward pass and optimization
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                lr_scheduler.step()
+                # Normalize the Gradients
+                loss_n = loss / NUM_ACCUMULATION_STEPS
+                loss_n.backward()
 
-                if (i + 1) % 5 == 0:
-                    wandb.log({"epoch": epoch, "loss": loss}, step=step)
-                    print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_dataloader)}], Loss: {loss.item()}")
+                if ((step + 1) % NUM_ACCUMULATION_STEPS == 0):
+                    step_vis += 1
+
+                    # Update Optimizer
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
 
 
-                if (i + 1)% 50 ==0:
-                    ## Save Torch Model ##
-                    checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
-                    makedirs(checkpoint_dir)
-                    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
-                    torch.save(model.state_dict(), checkpoint_model)
+                    if (step_vis + 1) % 5 == 0:
+                        wandb.log({"epoch": epoch, "loss": loss}, step=step_vis)
+                        print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_dataloader)}], Loss: {loss.item()}")
+
+
+                    if (step_vis + 1)% 50 ==0:
+                        ## Save Torch Model ##
+                        checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'pusht')
+                        makedirs(checkpoint_dir)
+                        checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
+                        torch.save(model.state_dict(), checkpoint_model)
 
 
     ## Save Torch Model ##
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'trained_models', 'naive_data')
     makedirs(checkpoint_dir)
-    checkpoint_model = os.path.join(checkpoint_dir, 'model.pth')
+    checkpoint_model = os.path.join(checkpoint_dir, 'model_old.pth')
     torch.save(model.state_dict(),  checkpoint_model)
     print('Finished Training')
 
